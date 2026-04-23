@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quadratic Programming Solver</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #fff; color: #111; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; }
+  .grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.4fr); gap: 1.5rem; }
+  .section { margin-bottom: 1.5rem; }
+  .label { font-size: 13px; color: #666; margin-bottom: 6px; display: block; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .row span { font-size: 14px; }
+  input[type="number"] { width: 64px; text-align: center; padding: 6px 8px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 14px; }
+  input[type="number"]:focus { outline: none; box-shadow: 0 0 0 2px #378ADD; }
+  input[type="text"] { padding: 6px 10px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 13px; font-family: monospace; }
+  input[type="text"]:focus { outline: none; box-shadow: 0 0 0 2px #378ADD; }
+  select { padding: 6px 8px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 14px; cursor: pointer; }
+  button { padding: 6px 14px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 13px; cursor: pointer; }
+  button:hover { background: #f5f5f3; }
+  #solve-btn { width: 100%; padding: 0.65rem; font-size: 14px; font-weight: 500; }
+  .constraint-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .constraint-row input { width: 56px; }
+  .btn-remove { background: none; border: none; cursor: pointer; color: #888; font-size: 18px; padding: 0 4px; line-height: 1; }
+  .btn-remove:hover { color: #E24B4A; }
+  .result-card { background: #f5f5f3; border-radius: 8px; padding: 1rem; margin-top: 1rem; }
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .result-item label { font-size: 12px; color: #666; }
+  .result-item .val { font-size: 22px; font-weight: 500; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 8px; }
+  .badge-success { background: #EAF3DE; color: #3B6D11; }
+  .badge-danger { background: #FCEBEB; color: #A32D2D; }
+  .chart-wrapper { position: relative; width: 100%; height: 380px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 12px; color: #666; }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .no-constraints { font-size: 13px; color: #aaa; padding: 8px 0; }
+  .tab-row { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tab { padding: 5px 12px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #666; font-size: 13px; cursor: pointer; }
+  .tab.active { background: #111; color: #fff; border-color: #111; }
+  .fn-panel { display: none; }
+  .fn-panel.active { display: block; }
+  .preview-box { background: #f5f5f3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #444; font-family: monospace; margin-bottom: 8px; min-height: 32px; word-break: break-all; }
+  .err-box { font-size: 12px; color: #A32D2D; margin-top: 4px; min-height: 16px; }
+  .settings-panel { background: #f9f9f7; border: 0.5px solid #e0e0d8; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+  .level-tag { display: inline-flex; align-items: center; gap: 4px; background: #FAEEDA; color: #854F0B; border-radius: 6px; padding: 2px 8px; font-size: 12px; margin: 2px; }
+  .level-tag button { background: none; border: none; cursor: pointer; color: #854F0B; font-size: 14px; padding: 0; line-height: 1; }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<h1>Quadratic Programming Solver</h1>
+
+<div class="grid">
+<div>
+
+  <div class="section">
+    <span class="label">Objective function f(x, y)</span>
+    <div class="tab-row">
+      <button class="tab active" id="tab-boxes" onclick="switchTab('boxes')">Coefficient boxes</button>
+      <button class="tab" id="tab-custom" onclick="switchTab('custom')">Custom expression</button>
+    </div>
+
+    <div id="panel-boxes" class="fn-panel active">
+      <div class="preview-box" id="boxes-preview">f(x,y) = 1x² + 1y²</div>
+      <div class="row">
+        <input type="number" id="ca" value="1" step="0.5" oninput="boxesChanged()">
+        <span>x²  +</span>
+        <input type="number" id="cb" value="1" step="0.5" oninput="boxesChanged()">
+        <span>y²  +</span>
+        <input type="number" id="cc" value="0" step="0.5" oninput="boxesChanged()">
+        <span>xy</span>
+      </div>
+      <div class="row">
+        <span style="width:16px"></span>
+        <input type="number" id="cd" value="0" step="0.5" oninput="boxesChanged()">
+        <span>x  +</span>
+        <input type="number" id="ce" value="0" step="0.5" oninput="boxesChanged()">
+        <span>y  +</span>
+        <input type="number" id="cf" value="0" step="0.5" oninput="boxesChanged()">
+      </div>
+    </div>
+
+    <div id="panel-custom" class="fn-panel">
+      <span class="label" style="margin-bottom:4px;">Type any expression using x and y</span>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+        <span style="font-size:14px; white-space:nowrap;">f(x,y) =</span>
+        <input type="text" id="custom-expr" value="x^2 + y^2" style="flex:1;" oninput="customChanged()" placeholder="e.g. x^2 + y^2 - x*y + 2*x">
+      </div>
+      <div class="preview-box" id="custom-preview">f(x,y) = x^2 + y^2</div>
+      <div class="err-box" id="custom-err"></div>
+      <div style="font-size:11px; color:#aaa; margin-top:4px;">Supports: x, y, +, -, *, /, ^, Math.sin, Math.cos, Math.abs, Math.sqrt, Math.exp, Math.log</div>
+      <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+        <button onclick="syncToBoxes()">Parse into coefficient boxes</button>
+        <span style="font-size:11px; color:#aaa;">(standard quadratic forms only)</span>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <span class="label" style="margin:0;">Optimize:</span>
+      <select id="optType">
+        <option value="min">Minimize</option>
+        <option value="max">Maximize</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span class="label" style="margin:0;">Constraints (linear)</span>
+      <button onclick="addConstraint()">+ Add constraint</button>
+    </div>
+    <div style="font-size:12px; color:#aaa; margin-bottom:8px;">ax + by ≤ / ≥ / = c</div>
+    <div id="constraints-list"></div>
+  </div>
+
+  <div class="section">
+    <span class="label">Variable bounds</span>
+    <div class="row">
+      <span style="font-size:14px; width:14px;">x</span>
+      <input type="number" id="xmin" value="-5" step="1" style="width:56px;">
+      <span style="font-size:13px;color:#888;">to</span>
+      <input type="number" id="xmax" value="5" step="1" style="width:56px;">
+    </div>
+    <div class="row">
+      <span style="font-size:14px; width:14px;">y</span>
+      <input type="number" id="ymin" value="-5" step="1" style="width:56px;">
+      <span style="font-size:13px;color:#888;">to</span>
+      <input type="number" id="ymax" value="5" step="1" style="width:56px;">
+    </div>
+  </div>
+
+  <div class="settings-panel">
+    <div style="font-size:13px; font-weight:500; margin-bottom:12px;">Graph settings</div>
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+      <span class="label" style="margin:0; white-space:nowrap;">Auto contour levels</span>
+      <input type="number" id="nLevels" value="8" min="2" max="20" step="1" style="width:60px;">
+    </div>
+    <span class="label" style="margin-bottom:6px;">Custom f(x*,y*) levels</span>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <input type="number" id="custom-level-input" step="0.5" placeholder="e.g. 2.5" style="width:90px;">
+      <button onclick="addCustomLevel()">+ Add level</button>
+    </div>
+    <div id="custom-levels-tags" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:4px;"></div>
+    <div style="font-size:11px; color:#aaa; margin-top:6px;">Custom levels appear as orange dashed contours</div>
+  </div>
+
+  <button id="solve-btn" onclick="solve()">Solve</button>
+  <div id="results"></div>
+
+</div>
+
+<div>
+  <span class="label">2D contour graph</span>
+  <div class="chart-wrapper">
+    <canvas id="qpChart" role="img" aria-label="2D contour plot of objective function with constraints and optimal point"></canvas>
+  </div>
+  <div class="legend" id="legend"></div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let constraints = [];
+let chartInst = null;
+let activeTab = 'boxes';
+let customLevels = [];
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tab-boxes').classList.toggle('active', tab === 'boxes');
+  document.getElementById('tab-custom').classList.toggle('active', tab === 'custom');
+  document.getElementById('panel-boxes').classList.toggle('active', tab === 'boxes');
+  document.getElementById('panel-custom').classList.toggle('active', tab === 'custom');
+}
+
+function fmtNum(v) {
+  const n = parseFloat(v) || 0;
+  return n === Math.floor(n) ? n.toString() : parseFloat(n.toFixed(4)).toString();
+}
+
+function boxesChanged() {
+  const a = parseFloat(document.getElementById('ca').value) || 0;
+  const b = parseFloat(document.getElementById('cb').value) || 0;
+  const c = parseFloat(document.getElementById('cc').value) || 0;
+  const d = parseFloat(document.getElementById('cd').value) || 0;
+  const e = parseFloat(document.getElementById('ce').value) || 0;
+  const f = parseFloat(document.getElementById('cf').value) || 0;
+  const terms = [];
+  if (a !== 0) terms.push(`${fmtNum(a)}x²`);
+  if (b !== 0) terms.push(`${fmtNum(b)}y²`);
+  if (c !== 0) terms.push(`${fmtNum(c)}xy`);
+  if (d !== 0) terms.push(`${fmtNum(d)}x`);
+  if (e !== 0) terms.push(`${fmtNum(e)}y`);
+  if (f !== 0) terms.push(`${fmtNum(f)}`);
+  const expr = terms.length ? terms.join(' + ').replace(/\+ -/g, '- ') : '0';
+  document.getElementById('boxes-preview').textContent = `f(x,y) = ${expr}`;
+  const jsExpr = `${a}*x*x + ${b}*y*y + ${c}*x*y + ${d}*x + ${e}*y + ${f}`;
+  document.getElementById('custom-expr').value = jsExpr;
+  document.getElementById('custom-preview').textContent = `f(x,y) = ${expr}`;
+  document.getElementById('custom-err').textContent = '';
+}
+
+function customChanged() {
+  const raw = document.getElementById('custom-expr').value.trim();
+  const errEl = document.getElementById('custom-err');
+  const previewEl = document.getElementById('custom-preview');
+  if (!raw) { previewEl.textContent = 'f(x,y) = (empty)'; errEl.textContent = ''; return; }
+  const jsExpr = raw.replace(/\^/g, '**');
+  try {
+    const x = 1, y = 1;
+    const result = eval(jsExpr);
+    if (typeof result !== 'number' || isNaN(result)) throw new Error('Not a number');
+    errEl.textContent = '';
+    const display = raw.replace(/\*\*/g, '^');
+    previewEl.textContent = `f(x,y) = ${display}`;
+  } catch(err) {
+    errEl.textContent = 'Invalid expression — check syntax';
+    previewEl.textContent = 'f(x,y) = (error)';
+  }
+}
+
+function syncToBoxes() {
+  const raw = document.getElementById('custom-expr').value.trim();
+  const jsExpr = raw.replace(/\^/g, '**');
+  try {
+    const f00 = evalJS(0, 0, jsExpr);
+    const fx1 = evalJS(1, 0, jsExpr);
+    const fxn = evalJS(-1, 0, jsExpr);
+    const fy1 = evalJS(0, 1, jsExpr);
+    const fyn = evalJS(0, -1, jsExpr);
+    const fxy = evalJS(1, 1, jsExpr);
+    const fa = (fx1 - 2*f00 + fxn) / 2;
+    const fd = (fx1 - fxn) / 2;
+    const fb = (fy1 - 2*f00 + fyn) / 2;
+    const fe = (fy1 - fyn) / 2;
+    const fc = fxy - fa - fb - fd - fe - f00;
+    document.getElementById('ca').value = parseFloat(fa.toFixed(6));
+    document.getElementById('cb').value = parseFloat(fb.toFixed(6));
+    document.getElementById('cc').value = parseFloat(fc.toFixed(6));
+    document.getElementById('cd').value = parseFloat(fd.toFixed(6));
+    document.getElementById('ce').value = parseFloat(fe.toFixed(6));
+    document.getElementById('cf').value = parseFloat(f00.toFixed(6));
+    boxesChanged();
+  } catch(e) {
+    alert('Could not parse expression. Make sure it only uses x and y.');
+  }
+}
+
+function evalJS(x, y, jsExpr) { return eval(jsExpr); }
+
+function getObjFn() {
+  if (activeTab === 'custom') {
+    const raw = document.getElementById('custom-expr').value.trim();
+    const jsExpr = raw.replace(/\^/g, '**');
+    return (x, y) => { try { return eval(jsExpr); } catch(e) { return NaN; } };
+  }
+  const a = parseFloat(document.getElementById('ca').value)||0;
+  const b = parseFloat(document.getElementById('cb').value)||0;
+  const c = parseFloat(document.getElementById('cc').value)||0;
+  const d = parseFloat(document.getElementById('cd').value)||0;
+  const e = parseFloat(document.getElementById('ce').value)||0;
+  const f = parseFloat(document.getElementById('cf').value)||0;
+  return (x, y) => a*x*x + b*y*y + c*x*y + d*x + e*y + f;
+}
+
+function getParams() {
+  return {
+    xmin: parseFloat(document.getElementById('xmin').value) || -5,
+    xmax: parseFloat(document.getElementById('xmax').value) || 5,
+    ymin: parseFloat(document.getElementById('ymin').value) || -5,
+    ymax: parseFloat(document.getElementById('ymax').value) || 5,
+    opt: document.getElementById('optType').value
+  };
+}
+
+function addCustomLevel() {
+  const val = parseFloat(document.getElementById('custom-level-input').value);
+  if (isNaN(val)) return;
+  if (!customLevels.includes(val)) { customLevels.push(val); customLevels.sort((a,b) => a-b); }
+  document.getElementById('custom-level-input').value = '';
+  renderCustomLevels();
+}
+
+function removeCustomLevel(val) {
+  customLevels = customLevels.filter(v => v !== val);
+  renderCustomLevels();
+}
+
+function renderCustomLevels() {
+  const el = document.getElementById('custom-levels-tags');
+  if (customLevels.length === 0) {
+    el.innerHTML = '<span style="font-size:12px;color:#aaa;">No custom levels</span>';
+    return;
+  }
+  el.innerHTML = customLevels.map(v =>
+    `<span class="level-tag">f = ${v}<button onclick="removeCustomLevel(${v})">×</button></span>`
+  ).join('');
+}
+
+function addConstraint(a=1, b=1, op='<=', c=4) {
+  const id = Date.now();
+  constraints.push({ id, a, b, op, c });
+  renderConstraints();
+}
+
+function removeConstraint(id) {
+  constraints = constraints.filter(c => c.id !== id);
+  renderConstraints();
+}
+
+function renderConstraints() {
+  const el = document.getElementById('constraints-list');
+  if (constraints.length === 0) { el.innerHTML = '<div class="no-constraints">No constraints added</div>'; return; }
+  el.innerHTML = constraints.map(c => `
+    <div class="constraint-row">
+      <input type="number" value="${c.a}" step="0.5" style="width:56px;" onchange="updateC(${c.id},'a',this.value)">
+      <span>x</span>
+      <input type="number" value="${c.b}" step="0.5" style="width:56px;" onchange="updateC(${c.id},'b',this.value)">
+      <span>y</span>
+      <select onchange="updateC(${c.id},'op',this.value)">
+        ${['<=','>=','='].map(o=>`<option ${c.op===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+      <input type="number" value="${c.c}" step="0.5" style="width:56px;" onchange="updateC(${c.id},'c',this.value)">
+      <button class="btn-remove" onclick="removeConstraint(${c.id})">×</button>
+    </div>
+  `).join('');
+}
+
+function updateC(id, key, val) {
+  const c = constraints.find(x => x.id === id);
+  if (c) c[key] = key === 'op' ? val : parseFloat(val) || 0;
+}
+
+function checkConstraints(x, y) {
+  for (const con of constraints) {
+    const lhs = con.a * x + con.b * y;
+    if (con.op === '<=' && lhs > con.c + 1e-9) return false;
+    if (con.op === '>=' && lhs < con.c - 1e-9) return false;
+    if (con.op === '=' && Math.abs(lhs - con.c) > 0.1) return false;
+  }
+  return true;
+}
+
+function solve() {
+  const p = getParams();
+  const objFn = getObjFn();
+  const steps = 120;
+  const dx = (p.xmax - p.xmin) / steps;
+  const dy = (p.ymax - p.ymin) / steps;
+  let bestVal = p.opt === 'min' ? Infinity : -Infinity;
+  let bestX = null, bestY = null;
+  for (let i = 0; i <= steps; i++) {
+    for (let j = 0; j <= steps; j++) {
+      const x = p.xmin + i * dx;
+      const y = p.ymin + j * dy;
+      if (!checkConstraints(x, y)) continue;
+      const v = objFn(x, y);
+      if (isNaN(v)) continue;
+      if (p.opt === 'min' ? v < bestVal : v > bestVal) { bestVal = v; bestX = x; bestY = y; }
+    }
+  }
+  const resultsEl = document.getElementById('results');
+  if (bestX === null) {
+    resultsEl.innerHTML = `<div class="result-card"><span class="badge badge-danger">Infeasible</span><p style="font-size:13px;color:#888;margin-top:8px;">No feasible point found. Adjust constraints or bounds.</p></div>`;
+    return;
+  }
+  resultsEl.innerHTML = `
+    <div class="result-card">
+      <span class="badge badge-success">Optimal found</span>
+      <div class="result-grid">
+        <div class="result-item"><label>x*</label><div class="val">${bestX.toFixed(3)}</div></div>
+        <div class="result-item"><label>y*</label><div class="val">${bestY.toFixed(3)}</div></div>
+        <div class="result-item"><label>f(x*,y*)</label><div class="val">${bestVal.toFixed(3)}</div></div>
+      </div>
+    </div>`;
+  drawChart(p, bestX, bestY, objFn);
+}
+
+function getContourPts(xs, ys, N, lv, objFn) {
+  const pts = [];
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) {
+      const v00 = objFn(xs[i], ys[j]);
+      const v10 = objFn(xs[i+1], ys[j]);
+      const v01 = objFn(xs[i], ys[j+1]);
+      const v11 = objFn(xs[i+1], ys[j+1]);
+      const above = [v00,v10,v11,v01].map(v => v >= lv);
+      if (above.every(Boolean) || above.every(b => !b)) continue;
+      const edgePts = [];
+      [[v00,v10,xs[i],ys[j],xs[i+1],ys[j]],
+       [v10,v11,xs[i+1],ys[j],xs[i+1],ys[j+1]],
+       [v11,v01,xs[i+1],ys[j+1],xs[i],ys[j+1]],
+       [v01,v00,xs[i],ys[j+1],xs[i],ys[j]]].forEach(([va,vb,x1,y1,x2,y2]) => {
+        if ((va >= lv) !== (vb >= lv)) {
+          const t = (lv - va) / (vb - va);
+          edgePts.push({ x: x1 + t*(x2-x1), y: y1 + t*(y2-y1) });
+        }
+      });
+      if (edgePts.length >= 2) pts.push(edgePts[0], edgePts[1], {x:null,y:null});
+    }
+  }
+  return pts;
+}
+
+function drawChart(p, optX, optY, objFn) {
+  const N = 40;
+  const xs = [], ys = [];
+  for (let i = 0; i <= N; i++) {
+    xs.push(p.xmin + (p.xmax - p.xmin) * i / N);
+    ys.push(p.ymin + (p.ymax - p.ymin) * i / N);
+  }
+  let mn = Infinity, mx = -Infinity;
+  for (let j = 0; j <= N; j++) {
+    for (let i = 0; i <= N; i++) {
+      const v = objFn(xs[i], ys[j]);
+      if (!isNaN(v) && isFinite(v)) { if (v < mn) mn = v; if (v > mx) mx = v; }
+    }
+  }
+  const nLevels = Math.max(2, Math.min(20, parseInt(document.getElementById('nLevels').value) || 8));
+  const levels = Array.from({length: nLevels}, (_, k) => mn + (mx - mn) * k / (nLevels - 1));
+  const palette = ['#185FA5','#378ADD','#85B7EB','#B5D4F4','#9FE1CB','#5DCAA5','#1D9E75','#0F6E56','#534AB7','#7F77DD','#D4537E','#993556','#639922','#3B6D11','#888780','#444441'];
+  const conColors = ['#D85A30','#993556','#534AB7','#0F6E56'];
+  const datasets = [];
+
+  levels.forEach((lv, li) => {
+    const pts = getContourPts(xs, ys, N, lv, objFn);
+    datasets.push({ label: `f=${lv.toFixed(1)}`, data: pts, borderColor: palette[li % palette.length], backgroundColor: 'transparent', pointRadius: 0, borderWidth: 1.5, spanGaps: false, showLine: true });
+  });
+
+  customLevels.forEach(lv => {
+    const pts = getContourPts(xs, ys, N, lv, objFn);
+    datasets.push({ label: `custom f=${lv}`, data: pts, borderColor: '#EF9F27', backgroundColor: 'transparent', pointRadius: 0, borderWidth: 2.5, spanGaps: false, showLine: true, borderDash: [6,3] });
+  });
+
+  constraints.forEach((con, ci) => {
+    const linePts = [];
+    if (Math.abs(con.b) > 1e-9) {
+      linePts.push({ x: p.xmin, y: (con.c - con.a * p.xmin) / con.b });
+      linePts.push({ x: p.xmax, y: (con.c - con.a * p.xmax) / con.b });
+    } else if (Math.abs(con.a) > 1e-9) {
+      const cx = con.c / con.a;
+      linePts.push({ x: cx, y: p.ymin });
+      linePts.push({ x: cx, y: p.ymax });
+    }
+    datasets.push({ label: `${con.a}x+${con.b}y${con.op}${con.c}`, data: linePts, borderColor: conColors[ci % 4], backgroundColor: 'transparent', borderWidth: 2, borderDash: [5,3], pointRadius: 0, showLine: true });
+  });
+
+  datasets.push({ label: 'Optimal', data: [{ x: optX, y: optY }], borderColor: '#D85A30', backgroundColor: '#D85A30', pointRadius: 8, pointStyle: 'star', showLine: false });
+
+  if (p.ymin <= 0 && p.ymax >= 0) {
+    datasets.push({ data: [{ x: p.xmin, y: 0 }, { x: p.xmax, y: 0 }], borderColor: '#333', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, showLine: true, spanGaps: true });
+  }
+  if (p.xmin <= 0 && p.xmax >= 0) {
+    datasets.push({ data: [{ x: 0, y: p.ymin }, { x: 0, y: p.ymax }], borderColor: '#333', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, showLine: true, spanGaps: true });
+  }
+
+  if (chartInst) chartInst.destroy();
+  const ctx = document.getElementById('qpChart').getContext('2d');
+  chartInst = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `(${c.parsed.x?.toFixed(2)}, ${c.parsed.y?.toFixed(2)})` } } },
+      scales: {
+        x: { min: p.xmin, max: p.xmax, grid: { color: 'rgba(128,128,128,0.12)' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v.toFixed(1) }, border: { color: '#555', width: 2 } },
+        y: { min: p.ymin, max: p.ymax, grid: { color: 'rgba(128,128,128,0.12)' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v.toFixed(1) }, border: { color: '#555', width: 2 } }
+      }
+    }
+  });
+
+  document.getElementById('legend').innerHTML = `
+    <span><span style="width:16px;height:3px;background:linear-gradient(90deg,#185FA5,#0F6E56);display:inline-block;border-radius:2px;"></span> Auto contours</span>
+    ${customLevels.map(v => `<span><span style="width:16px;height:3px;background:#EF9F27;display:inline-block;border-radius:2px;"></span> f = ${v}</span>`).join('')}
+    ${constraints.map((c,i) => `<span><span style="width:16px;height:3px;background:${conColors[i%4]};display:inline-block;border-radius:2px;"></span> ${c.a}x+${c.b}y${c.op}${c.c}</span>`).join('')}
+    <span><span style="width:10px;height:10px;background:#D85A30;border-radius:50%;display:inline-block;"></span> Optimal</span>
+  `;
+}
+
+addConstraint(1, 1, '<=', 4);
+addConstraint(1, 0, '>=', -3);
+renderConstraints();
+renderCustomLevels();
+boxesChanged();
+solve();
+</script>
+</body>
+</html>
