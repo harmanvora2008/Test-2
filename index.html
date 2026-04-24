@@ -2,502 +2,841 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quadratic Programming Solver</title>
+<title>DEADZONE</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #fff; color: #111; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
-  h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; }
-  .grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.4fr); gap: 1.5rem; }
-  .section { margin-bottom: 1.5rem; }
-  .label { font-size: 13px; color: #666; margin-bottom: 6px; display: block; }
-  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-  .row span { font-size: 14px; }
-  input[type="number"] { width: 64px; text-align: center; padding: 6px 8px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 14px; }
-  input[type="number"]:focus { outline: none; box-shadow: 0 0 0 2px #378ADD; }
-  input[type="text"] { padding: 6px 10px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 13px; font-family: monospace; }
-  input[type="text"]:focus { outline: none; box-shadow: 0 0 0 2px #378ADD; }
-  select { padding: 6px 8px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 14px; cursor: pointer; }
-  button { padding: 6px 14px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #111; font-size: 13px; cursor: pointer; }
-  button:hover { background: #f5f5f3; }
-  #solve-btn { width: 100%; padding: 0.65rem; font-size: 14px; font-weight: 500; }
-  .constraint-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-  .constraint-row input { width: 56px; }
-  .btn-remove { background: none; border: none; cursor: pointer; color: #888; font-size: 18px; padding: 0 4px; line-height: 1; }
-  .btn-remove:hover { color: #E24B4A; }
-  .result-card { background: #f5f5f3; border-radius: 8px; padding: 1rem; margin-top: 1rem; }
-  .result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
-  .result-item label { font-size: 12px; color: #666; }
-  .result-item .val { font-size: 22px; font-weight: 500; }
-  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 8px; }
-  .badge-success { background: #EAF3DE; color: #3B6D11; }
-  .badge-danger { background: #FCEBEB; color: #A32D2D; }
-  .chart-wrapper { position: relative; width: 100%; height: 380px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 12px; color: #666; }
-  .legend span { display: flex; align-items: center; gap: 4px; }
-  .no-constraints { font-size: 13px; color: #aaa; padding: 8px 0; }
-  .tab-row { display: flex; gap: 4px; margin-bottom: 12px; }
-  .tab { padding: 5px 12px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; color: #666; font-size: 13px; cursor: pointer; }
-  .tab.active { background: #111; color: #fff; border-color: #111; }
-  .fn-panel { display: none; }
-  .fn-panel.active { display: block; }
-  .preview-box { background: #f5f5f3; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #444; font-family: monospace; margin-bottom: 8px; min-height: 32px; word-break: break-all; }
-  .err-box { font-size: 12px; color: #A32D2D; margin-top: 4px; min-height: 16px; }
-  .level-tag { display: inline-flex; align-items: center; gap: 4px; background: #FAEEDA; color: #854F0B; border-radius: 6px; padding: 2px 8px; font-size: 12px; margin: 2px; }
-  .level-tag button { background: none; border: none; cursor: pointer; color: #854F0B; font-size: 14px; padding: 0; line-height: 1; }
-  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+  #hud {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 12px;
+    color: #ff3333;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  #hud span { color: #fff; }
+  canvas {
+    border: 2px solid #ff3333;
+    box-shadow: 0 0 30px rgba(255,50,50,0.3);
+  }
+  #overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.85);
+    color: #ff3333;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+  }
+  #overlay h1 {
+    font-size: 52px;
+    letter-spacing: 10px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px #ff3333;
+  }
+  #overlay p {
+    color: #aaa;
+    font-size: 13px;
+    letter-spacing: 2px;
+    margin: 6px 0;
+  }
+  #overlay .start-btn {
+    margin-top: 30px;
+    padding: 12px 40px;
+    background: transparent;
+    border: 2px solid #ff3333;
+    color: #ff3333;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  #overlay .start-btn:hover { background: #ff3333; color: #000; }
+  #controls {
+    margin-top: 16px;
+    color: #444;
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
 </style>
 </head>
 <body>
 
-<h1>Quadratic Programming Solver</h1>
+<div id="hud">
+  LEVEL: <span id="lvl">1</span>
+  &nbsp;&nbsp;HP: <span id="hp">❤❤❤</span>
+  &nbsp;&nbsp;KILLS: <span id="kills">0</span>
+  &nbsp;&nbsp;GUN: <span id="gun">PISTOL</span>
+  &nbsp;&nbsp;AMMO: <span id="ammo">20/20</span>
+</div>
+<canvas id="c" width="900" height="480"></canvas>
+<div id="controls">↑↓ MOVE &nbsp;|&nbsp; ←→ ROTATE &nbsp;|&nbsp; SPACE SHOOT</div>
 
-<div class="grid">
-<div>
-
-  <div class="section">
-    <span class="label">Objective function f(x, y)</span>
-    <div class="tab-row">
-      <button class="tab active" id="tab-boxes" onclick="switchTab('boxes')">Coefficient boxes</button>
-      <button class="tab" id="tab-custom" onclick="switchTab('custom')">Custom expression</button>
-    </div>
-
-    <div id="panel-boxes" class="fn-panel active">
-      <div class="preview-box" id="boxes-preview">f(x,y) = 1x² + 1y²</div>
-      <div class="row">
-        <input type="number" id="ca" value="1" step="0.5" oninput="boxesChanged()">
-        <span>x²  +</span>
-        <input type="number" id="cb" value="1" step="0.5" oninput="boxesChanged()">
-        <span>y²  +</span>
-        <input type="number" id="cc" value="0" step="0.5" oninput="boxesChanged()">
-        <span>xy</span>
-      </div>
-      <div class="row">
-        <span style="width:16px"></span>
-        <input type="number" id="cd" value="0" step="0.5" oninput="boxesChanged()">
-        <span>x  +</span>
-        <input type="number" id="ce" value="0" step="0.5" oninput="boxesChanged()">
-        <span>y  +</span>
-        <input type="number" id="cf" value="0" step="0.5" oninput="boxesChanged()">
-      </div>
-    </div>
-
-    <div id="panel-custom" class="fn-panel">
-      <span class="label" style="margin-bottom:4px;">Type any expression using x and y</span>
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
-        <span style="font-size:14px; white-space:nowrap;">f(x,y) =</span>
-        <input type="text" id="custom-expr" value="x^2 + y^2" style="flex:1;" oninput="customChanged()" placeholder="e.g. x^2 + y^2 - x*y + 2*x">
-      </div>
-      <div class="preview-box" id="custom-preview">f(x,y) = x^2 + y^2</div>
-      <div class="err-box" id="custom-err"></div>
-      <div style="font-size:11px; color:#aaa; margin-top:4px;">Supports: x, y, +, -, *, /, ^, Math.sin, Math.cos, Math.abs, Math.sqrt, Math.exp, Math.log</div>
-      <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
-        <button onclick="syncToBoxes()">Parse into coefficient boxes</button>
-        <span style="font-size:11px; color:#aaa;">(standard quadratic forms only)</span>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px;">
-      <span class="label" style="margin:0;">Optimize:</span>
-      <select id="optType">
-        <option value="min">Minimize</option>
-        <option value="max">Maximize</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="section">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <span class="label" style="margin:0;">Constraints (linear)</span>
-      <button onclick="addConstraint()">+ Add constraint</button>
-    </div>
-    <div style="font-size:12px; color:#aaa; margin-bottom:8px;">ax + by ≤ / ≥ / = c</div>
-    <div id="constraints-list"></div>
-  </div>
-
-  <div class="section">
-    <span class="label">Variable bounds</span>
-    <div class="row">
-      <span style="font-size:14px; width:14px;">x</span>
-      <input type="number" id="xmin" value="-5" step="1" style="width:56px;">
-      <span style="font-size:13px;color:#888;">to</span>
-      <input type="number" id="xmax" value="5" step="1" style="width:56px;">
-    </div>
-    <div class="row">
-      <span style="font-size:14px; width:14px;">y</span>
-      <input type="number" id="ymin" value="-5" step="1" style="width:56px;">
-      <span style="font-size:13px;color:#888;">to</span>
-      <input type="number" id="ymax" value="5" step="1" style="width:56px;">
-    </div>
-  </div>
-
-  <button id="solve-btn" onclick="solve()">Solve</button>
-  <div id="results"></div>
-
+<div id="overlay">
+  <h1>DEADZONE</h1>
+  <p>REACH THE EXIT — DON'T GET EATEN</p>
+  <p style="color:#555;font-size:11px;margin-top:8px;">↑↓ MOVE &nbsp;|&nbsp; ←→ ROTATE &nbsp;|&nbsp; SPACE SHOOT</p>
+  <button class="start-btn" onclick="startGame()">START</button>
 </div>
 
-<div>
-  <span class="label">2D contour graph</span>
-  <div class="chart-wrapper">
-    <canvas id="qpChart" role="img" aria-label="2D contour plot of objective function with constraints and optimal point"></canvas>
-  </div>
-  <div class="legend" id="legend"></div>
-</div>
-
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-let constraints = [];
-let chartInst = null;
-let activeTab = 'boxes';
-let customLevels = [];
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const TILE = 40;
 
-function addCustomLevel() {}
-function removeCustomLevel(val) {}
-function renderCustomLevels() {}
+// ── Constants ───────────────────────────────────────────────────────────────
+const ENRAGE_RADIUS = 150;
+const MAX_HP = 3;
 
-function switchTab(tab) {
-  activeTab = tab;
-  document.getElementById('tab-boxes').classList.toggle('active', tab === 'boxes');
-  document.getElementById('tab-custom').classList.toggle('active', tab === 'custom');
-  document.getElementById('panel-boxes').classList.toggle('active', tab === 'boxes');
-  document.getElementById('panel-custom').classList.toggle('active', tab === 'custom');
+// Gun stats: cooldown in frames (60fps), ammo, reload time
+const GUNS = {
+  pistol:    { name: 'PISTOL',    cooldown: 14, ammo: 20, reload: 150, bulletSpeed: 8,  damage: 1, color: '#888' },
+  machine:   { name: 'MACHINE',   cooldown: 17, ammo: 40, reload: 180, bulletSpeed: 9,  damage: 1, color: '#bbb' }, // ~3.5/sec
+  power:     { name: 'POWER',     cooldown: 6,  ammo: 60, reload: 150, bulletSpeed: 11, damage: 1, color: '#ffdd00' } // 10/sec
+};
+
+let cam = { x: 0, y: 0 };
+let worldW = 0, worldH = 0;
+
+let state = 'menu';
+let player, zombies, bullets, hearts, powerup, level, kills, gameOver, won;
+let currentWalls, currentExit;
+let keys = {};
+
+// ── Level generation ────────────────────────────────────────────────────────
+// Map: 30 cols × 12 rows  →  1200 × 480 world (wider, shorter)
+const MAP_COLS = 30, MAP_ROWS = 12;
+
+function generateLevel(lvl) {
+  // Create empty map with border
+  const map = [];
+  for (let r = 0; r < MAP_ROWS; r++) {
+    let row = '';
+    for (let c = 0; c < MAP_COLS; c++) {
+      if (r === 0 || r === MAP_ROWS-1 || c === 0 || c === MAP_COLS-1) row += '#';
+      else row += '.';
+    }
+    map.push(row.split(''));
+  }
+
+  // Add interior walls — difficulty scales with level
+  const obstacleCount = 3 + Math.floor(lvl * 0.8);
+  const rng = mulberry32(lvl * 1337 + 7);
+
+  for (let i = 0; i < obstacleCount; i++) {
+    const shape = Math.floor(rng() * 4);
+    const cx = 3 + Math.floor(rng() * (MAP_COLS - 8));
+    const cy = 2 + Math.floor(rng() * (MAP_ROWS - 5));
+
+    if (shape === 0) { // horizontal wall
+      const len = 2 + Math.floor(rng() * 3);
+      for (let j = 0; j < len && cx + j < MAP_COLS - 2; j++) map[cy][cx + j] = '#';
+    } else if (shape === 1) { // vertical wall
+      const len = 2 + Math.floor(rng() * 2);
+      for (let j = 0; j < len && cy + j < MAP_ROWS - 2; j++) map[cy + j][cx] = '#';
+    } else if (shape === 2) { // L shape
+      map[cy][cx] = '#'; map[cy][cx+1] = '#'; map[cy+1][cx] = '#';
+    } else { // 2x2 block
+      map[cy][cx] = '#'; map[cy][cx+1] = '#';
+      map[cy+1][cx] = '#'; map[cy+1][cx+1] = '#';
+    }
+  }
+
+  // Player start: top-left, exit: bottom-right area — ensure clear
+  map[1][1] = '.'; map[1][2] = '.'; map[2][1] = '.';
+
+  // Exit is 1.5x bigger — mark 2x2 area with 'E' flag (treat as one exit zone)
+  const exitCol = MAP_COLS - 3;
+  const exitRow = MAP_ROWS - 3;
+  // Clear area around exit for placement
+  for (let dr = 0; dr < 2; dr++)
+    for (let dc = 0; dc < 2; dc++)
+      map[exitRow + dr][exitCol + dc] = 'E';
+
+  // Add walls NEAR the exit to make it harder to reach (but leave gap)
+  if (lvl >= 2) {
+    // Vertical wall blocking direct path
+    const blockCol = exitCol - 3;
+    for (let r = exitRow - 2; r <= exitRow + 1; r++) {
+      if (r !== exitRow) map[r][blockCol] = '#';
+    }
+  }
+  if (lvl >= 5) {
+    const blockCol = exitCol - 5;
+    for (let r = exitRow - 1; r <= exitRow + 2; r++) {
+      if (r !== exitRow + 2 && r < MAP_ROWS - 1) map[r][blockCol] = '#';
+    }
+  }
+
+  return map.map(r => r.join(''));
 }
 
-function fmtNum(v) {
-  const n = parseFloat(v) || 0;
-  return n === Math.floor(n) ? n.toString() : parseFloat(n.toFixed(4)).toString();
-}
-
-function boxesChanged() {
-  const a = parseFloat(document.getElementById('ca').value) || 0;
-  const b = parseFloat(document.getElementById('cb').value) || 0;
-  const c = parseFloat(document.getElementById('cc').value) || 0;
-  const d = parseFloat(document.getElementById('cd').value) || 0;
-  const e = parseFloat(document.getElementById('ce').value) || 0;
-  const f = parseFloat(document.getElementById('cf').value) || 0;
-  const terms = [];
-  if (a !== 0) terms.push(`${fmtNum(a)}x²`);
-  if (b !== 0) terms.push(`${fmtNum(b)}y²`);
-  if (c !== 0) terms.push(`${fmtNum(c)}xy`);
-  if (d !== 0) terms.push(`${fmtNum(d)}x`);
-  if (e !== 0) terms.push(`${fmtNum(e)}y`);
-  if (f !== 0) terms.push(`${fmtNum(f)}`);
-  const expr = terms.length ? terms.join(' + ').replace(/\+ -/g, '- ') : '0';
-  document.getElementById('boxes-preview').textContent = `f(x,y) = ${expr}`;
-  const jsExpr = `${a}*x*x + ${b}*y*y + ${c}*x*y + ${d}*x + ${e}*y + ${f}`;
-  document.getElementById('custom-expr').value = jsExpr;
-  document.getElementById('custom-preview').textContent = `f(x,y) = ${expr}`;
-  document.getElementById('custom-err').textContent = '';
-}
-
-function customChanged() {
-  const raw = document.getElementById('custom-expr').value.trim();
-  const errEl = document.getElementById('custom-err');
-  const previewEl = document.getElementById('custom-preview');
-  if (!raw) { previewEl.textContent = 'f(x,y) = (empty)'; errEl.textContent = ''; return; }
-  const jsExpr = raw.replace(/\^/g, '**');
-  try {
-    const x = 1, y = 1;
-    const result = eval(jsExpr);
-    if (typeof result !== 'number' || isNaN(result)) throw new Error('Not a number');
-    errEl.textContent = '';
-    const display = raw.replace(/\*\*/g, '^');
-    previewEl.textContent = `f(x,y) = ${display}`;
-  } catch(err) {
-    errEl.textContent = 'Invalid expression — check syntax';
-    previewEl.textContent = 'f(x,y) = (error)';
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = a;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
   }
 }
 
-function syncToBoxes() {
-  const raw = document.getElementById('custom-expr').value.trim();
-  const jsExpr = raw.replace(/\^/g, '**');
-  try {
-    const f00 = evalJS(0, 0, jsExpr);
-    const fx1 = evalJS(1, 0, jsExpr);
-    const fxn = evalJS(-1, 0, jsExpr);
-    const fy1 = evalJS(0, 1, jsExpr);
-    const fyn = evalJS(0, -1, jsExpr);
-    const fxy = evalJS(1, 1, jsExpr);
-    const fa = (fx1 - 2*f00 + fxn) / 2;
-    const fd = (fx1 - fxn) / 2;
-    const fb = (fy1 - 2*f00 + fyn) / 2;
-    const fe = (fy1 - fyn) / 2;
-    const fc = fxy - fa - fb - fd - fe - f00;
-    document.getElementById('ca').value = parseFloat(fa.toFixed(6));
-    document.getElementById('cb').value = parseFloat(fb.toFixed(6));
-    document.getElementById('cc').value = parseFloat(fc.toFixed(6));
-    document.getElementById('cd').value = parseFloat(fd.toFixed(6));
-    document.getElementById('ce').value = parseFloat(fe.toFixed(6));
-    document.getElementById('cf').value = parseFloat(f00.toFixed(6));
-    boxesChanged();
-  } catch(e) {
-    alert('Could not parse expression. Make sure it only uses x and y.');
+// ── Parse map ────────────────────────────────────────────────────────────────
+function parseMap(mapRows) {
+  const walls = [];
+  const exitTiles = [];
+  for (let r = 0; r < mapRows.length; r++) {
+    for (let c = 0; c < mapRows[r].length; c++) {
+      const ch = mapRows[r][c];
+      if (ch === '#') walls.push({ x: c * TILE, y: r * TILE, w: TILE, h: TILE });
+      if (ch === 'E') exitTiles.push({ x: c * TILE, y: r * TILE });
+    }
   }
-}
-
-function evalJS(x, y, jsExpr) { return eval(jsExpr); }
-
-function getObjFn() {
-  if (activeTab === 'custom') {
-    const raw = document.getElementById('custom-expr').value.trim();
-    const jsExpr = raw.replace(/\^/g, '**');
-    return (x, y) => { try { return eval(jsExpr); } catch(e) { return NaN; } };
-  }
-  const a = parseFloat(document.getElementById('ca').value)||0;
-  const b = parseFloat(document.getElementById('cb').value)||0;
-  const c = parseFloat(document.getElementById('cc').value)||0;
-  const d = parseFloat(document.getElementById('cd').value)||0;
-  const e = parseFloat(document.getElementById('ce').value)||0;
-  const f = parseFloat(document.getElementById('cf').value)||0;
-  return (x, y) => a*x*x + b*y*y + c*x*y + d*x + e*y + f;
-}
-
-function getParams() {
+  worldW = mapRows[0].length * TILE;
+  worldH = mapRows.length * TILE;
+  // Exit zone: bounding box of all E tiles (2x2 → 60x60 area)
+  const minX = Math.min(...exitTiles.map(e => e.x));
+  const minY = Math.min(...exitTiles.map(e => e.y));
+  const maxX = Math.max(...exitTiles.map(e => e.x + TILE));
+  const maxY = Math.max(...exitTiles.map(e => e.y + TILE));
   return {
-    xmin: parseFloat(document.getElementById('xmin').value) || -5,
-    xmax: parseFloat(document.getElementById('xmax').value) || 5,
-    ymin: parseFloat(document.getElementById('ymin').value) || -5,
-    ymax: parseFloat(document.getElementById('ymax').value) || 5,
-    opt: document.getElementById('optType').value
+    walls,
+    exit: { x: minX, y: minY, w: maxX - minX, h: maxY - minY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 }
   };
 }
 
-function addCustomLevel() {
-  const val = parseFloat(document.getElementById('custom-level-input').value);
-  if (isNaN(val)) return;
-  if (!customLevels.includes(val)) { customLevels.push(val); customLevels.sort((a,b) => a-b); }
-  document.getElementById('custom-level-input').value = '';
-  renderCustomLevels();
-}
-
-function removeCustomLevel(val) {
-  customLevels = customLevels.filter(v => v !== val);
-  renderCustomLevels();
-}
-
-function renderCustomLevels() {
-  const el = document.getElementById('custom-levels-tags');
-  if (customLevels.length === 0) {
-    el.innerHTML = '<span style="font-size:12px;color:#aaa;">No custom levels</span>';
-    return;
-  }
-  el.innerHTML = customLevels.map(v =>
-    `<span class="level-tag">f = ${v}<button onclick="removeCustomLevel(${v})">×</button></span>`
-  ).join('');
-}
-
-function addConstraint(a=1, b=1, op='<=', c=4) {
-  const id = Date.now();
-  constraints.push({ id, a, b, op, c });
-  renderConstraints();
-}
-
-function removeConstraint(id) {
-  constraints = constraints.filter(c => c.id !== id);
-  renderConstraints();
-}
-
-function renderConstraints() {
-  const el = document.getElementById('constraints-list');
-  if (constraints.length === 0) { el.innerHTML = '<div class="no-constraints">No constraints added</div>'; return; }
-  el.innerHTML = constraints.map(c => `
-    <div class="constraint-row">
-      <input type="number" value="${c.a}" step="0.5" style="width:56px;" onchange="updateC(${c.id},'a',this.value)">
-      <span>x</span>
-      <input type="number" value="${c.b}" step="0.5" style="width:56px;" onchange="updateC(${c.id},'b',this.value)">
-      <span>y</span>
-      <select onchange="updateC(${c.id},'op',this.value)">
-        ${['<=','>=','='].map(o=>`<option ${c.op===o?'selected':''}>${o}</option>`).join('')}
-      </select>
-      <input type="number" value="${c.c}" step="0.5" style="width:56px;" onchange="updateC(${c.id},'c',this.value)">
-      <button class="btn-remove" onclick="removeConstraint(${c.id})">×</button>
-    </div>
-  `).join('');
-}
-
-function updateC(id, key, val) {
-  const c = constraints.find(x => x.id === id);
-  if (c) { c[key] = key === 'op' ? val : parseFloat(val) || 0; solve(); }
-}
-
-function checkConstraints(x, y) {
-  for (const con of constraints) {
-    const lhs = con.a * x + con.b * y;
-    if (con.op === '<=' && lhs > con.c + 1e-9) return false;
-    if (con.op === '>=' && lhs < con.c - 1e-9) return false;
-    if (con.op === '=' && Math.abs(lhs - con.c) > 0.1) return false;
-  }
-  return true;
-}
-
-function isOnBoundary(x, y) {
-  if (constraints.length === 0) return false;
-  for (const con of constraints) {
-    const lhs = con.a * x + con.b * y;
-    if (Math.abs(lhs - con.c) < 0.08) return true;
+// ── Collision ────────────────────────────────────────────────────────────────
+function collidesWalls(circle, walls) {
+  for (const w of walls) {
+    const cx = Math.max(w.x, Math.min(circle.x, w.x + w.w));
+    const cy = Math.max(w.y, Math.min(circle.y, w.y + w.h));
+    if (Math.hypot(circle.x - cx, circle.y - cy) < circle.r) return true;
   }
   return false;
 }
 
-function solve() {
-  const p = getParams();
-  const objFn = getObjFn();
-  const steps = 120;
-  const dx = (p.xmax - p.xmin) / steps;
-  const dy = (p.ymax - p.ymin) / steps;
-  let bestVal = p.opt === 'min' ? Infinity : -Infinity;
-  let bestX = null, bestY = null;
-  for (let i = 0; i <= steps; i++) {
-    for (let j = 0; j <= steps; j++) {
-      const x = p.xmin + i * dx;
-      const y = p.ymin + j * dy;
-      if (!checkConstraints(x, y)) continue;
-      const v = objFn(x, y);
-      if (isNaN(v)) continue;
-      if (p.opt === 'min' ? v < bestVal : v > bestVal) { bestVal = v; bestX = x; bestY = y; }
-    }
+// ── Zombie spawning ──────────────────────────────────────────────────────────
+function makeZombie(x, y, type) {
+  const base = {
+    x, y,
+    angle: Math.random() * Math.PI * 2,
+    dead: false, flashTimer: 0,
+    enraged: false,
+    wanderAngle: Math.random() * Math.PI * 2,
+    wanderTimer: Math.floor(Math.random() * 120) + 30,
+    type
+  };
+  if (type === 'normal') {
+    return { ...base, hp: 3, maxHp: 3, speed: 0.55, size: 12, damage: 1 };
+  } else if (type === 'armored') {
+    return { ...base, hp: 3, maxHp: 3, shield: 2, speed: 0.5, size: 12, damage: 1 };
+  } else if (type === 'big') {
+    return { ...base, hp: 15, maxHp: 15, speed: 0.35, size: 18, damage: 2 };
   }
-  const resultsEl = document.getElementById('results');
-  if (bestX === null) {
-    resultsEl.innerHTML = `<div class="result-card"><span class="badge badge-danger">Infeasible</span><p style="font-size:13px;color:#888;margin-top:8px;">No feasible point found. Adjust constraints or bounds.</p></div>`;
-    return;
-  }
-  const onBoundary = isOnBoundary(bestX, bestY);
-  const typeLabel = onBoundary
-    ? '<span class="badge" style="background:#FAEEDA;color:#854F0B;">Boundary solution</span>'
-    : '<span class="badge" style="background:#EAF3DE;color:#3B6D11;">Interior solution</span>';
-  resultsEl.innerHTML = `
-    <div class="result-card">
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <span class="badge badge-success">Optimal found</span>
-        ${typeLabel}
-      </div>
-      <div style="font-size:12px;color:#888;margin-top:6px;">
-        ${onBoundary ? 'Optimum lies on a constraint edge' : 'Optimum is in the interior — no constraint is active'}
-      </div>
-      <div class="result-grid" style="margin-top:10px;">
-        <div class="result-item"><label>x*</label><div class="val">${bestX.toFixed(3)}</div></div>
-        <div class="result-item"><label>y*</label><div class="val">${bestY.toFixed(3)}</div></div>
-        <div class="result-item"><label>f(x*,y*)</label><div class="val">${bestVal.toFixed(3)}</div></div>
-      </div>
-    </div>`;
-  drawChart(p, bestX, bestY, objFn, onBoundary);
 }
 
-function getContourPts(xs, ys, N, lv, objFn) {
-  const pts = [];
-  for (let j = 0; j < N; j++) {
-    for (let i = 0; i < N; i++) {
-      const v00 = objFn(xs[i], ys[j]);
-      const v10 = objFn(xs[i+1], ys[j]);
-      const v01 = objFn(xs[i], ys[j+1]);
-      const v11 = objFn(xs[i+1], ys[j+1]);
-      const above = [v00,v10,v11,v01].map(v => v >= lv);
-      if (above.every(Boolean) || above.every(b => !b)) continue;
-      const edgePts = [];
-      [[v00,v10,xs[i],ys[j],xs[i+1],ys[j]],
-       [v10,v11,xs[i+1],ys[j],xs[i+1],ys[j+1]],
-       [v11,v01,xs[i+1],ys[j+1],xs[i],ys[j+1]],
-       [v01,v00,xs[i],ys[j+1],xs[i],ys[j]]].forEach(([va,vb,x1,y1,x2,y2]) => {
-        if ((va >= lv) !== (vb >= lv)) {
-          const t = (lv - va) / (vb - va);
-          edgePts.push({ x: x1 + t*(x2-x1), y: y1 + t*(y2-y1) });
-        }
-      });
-      if (edgePts.length >= 2) pts.push(edgePts[0], edgePts[1], {x:null,y:null});
+function spawnZombies(lvl, walls, playerStart, exit, heartPositions) {
+  const zs = [];
+  // Base count scales with level
+  const baseCount = 5 + Math.floor(lvl * 1.2);
+  const clusterCount = 3 + Math.floor(lvl * 0.5);
+
+  // Determine composition based on level
+  const hasArmored = lvl >= 5;
+  const hasBig = lvl >= 10;
+
+  const total = baseCount + clusterCount;
+  let armoredQuota = hasArmored ? Math.floor(total * 0.3) : 0;
+  let bigQuota = hasBig ? Math.floor(total * 0.2) : 0;
+
+  function pickType() {
+    if (bigQuota > 0) { bigQuota--; return 'big'; }
+    if (armoredQuota > 0) { armoredQuota--; return 'armored'; }
+    return 'normal';
+  }
+
+  let attempts = 0;
+  // Scattered zombies
+  while (zs.length < baseCount && attempts < 2000) {
+    attempts++;
+    const x = TILE * 2 + Math.random() * (worldW - 4 * TILE);
+    const y = TILE * 2 + Math.random() * (worldH - 4 * TILE);
+    if (Math.hypot(x - playerStart.x, y - playerStart.y) < 200) continue;
+    if (collidesWalls({ x, y, r: 14 }, walls)) continue;
+    zs.push(makeZombie(x, y, pickType()));
+  }
+
+  // Cluster near exit
+  attempts = 0;
+  let placedNearExit = 0;
+  while (placedNearExit < clusterCount && attempts < 1000) {
+    attempts++;
+    const x = exit.cx + (Math.random() - 0.5) * 200;
+    const y = exit.cy + (Math.random() - 0.5) * 200;
+    if (x < TILE || x > worldW - TILE || y < TILE || y > worldH - TILE) continue;
+    if (collidesWalls({ x, y, r: 14 }, walls)) continue;
+    zs.push(makeZombie(x, y, pickType()));
+    placedNearExit++;
+  }
+
+  // Cluster near each heart
+  for (const h of heartPositions) {
+    let placed = 0;
+    attempts = 0;
+    const clusterSize = 2;
+    while (placed < clusterSize && attempts < 500) {
+      attempts++;
+      const x = h.x + (Math.random() - 0.5) * 150;
+      const y = h.y + (Math.random() - 0.5) * 150;
+      if (x < TILE || x > worldW - TILE || y < TILE || y > worldH - TILE) continue;
+      if (Math.hypot(x - playerStart.x, y - playerStart.y) < 150) continue;
+      if (collidesWalls({ x, y, r: 14 }, walls)) continue;
+      zs.push(makeZombie(x, y, pickType()));
+      placed++;
     }
   }
-  return pts;
+
+  return zs;
 }
 
-function drawChart(p, optX, optY, objFn, onBoundary) {
-  const N = 40;
-  const xs = [], ys = [];
-  for (let i = 0; i <= N; i++) {
-    xs.push(p.xmin + (p.xmax - p.xmin) * i / N);
-    ys.push(p.ymin + (p.ymax - p.ymin) * i / N);
+// ── Heart & powerup spawning ────────────────────────────────────────────────
+function spawnHearts(walls, playerStart, exit) {
+  const hearts = [];
+  const count = 1 + Math.floor(Math.random() * 2); // 1 or 2 hearts
+  let attempts = 0;
+  while (hearts.length < count && attempts < 500) {
+    attempts++;
+    const x = TILE * 3 + Math.random() * (worldW - 6 * TILE);
+    const y = TILE * 2 + Math.random() * (worldH - 4 * TILE);
+    if (Math.hypot(x - playerStart.x, y - playerStart.y) < 200) continue;
+    if (Math.hypot(x - exit.cx, y - exit.cy) < 150) continue;
+    if (collidesWalls({ x, y, r: 16 }, walls)) continue;
+    hearts.push({ x, y, collected: false });
   }
-  let mn = Infinity, mx = -Infinity;
-  for (let j = 0; j <= N; j++) {
-    for (let i = 0; i <= N; i++) {
-      const v = objFn(xs[i], ys[j]);
-      if (!isNaN(v) && isFinite(v)) { if (v < mn) mn = v; if (v > mx) mx = v; }
-    }
+  return hearts;
+}
+
+function spawnPowerup(walls, playerStart, exit) {
+  let attempts = 0;
+  while (attempts < 500) {
+    attempts++;
+    const x = TILE * 3 + Math.random() * (worldW - 6 * TILE);
+    const y = TILE * 2 + Math.random() * (worldH - 4 * TILE);
+    if (Math.hypot(x - playerStart.x, y - playerStart.y) < 250) continue;
+    if (Math.hypot(x - exit.cx, y - exit.cy) < 150) continue;
+    if (collidesWalls({ x, y, r: 16 }, walls)) continue;
+    return { x, y, collected: false };
   }
-  const nLevels = 8;
-  const levels = Array.from({length: nLevels}, (_, k) => mn + (mx - mn) * k / (nLevels - 1));
-  const palette = ['#185FA5','#378ADD','#85B7EB','#B5D4F4','#9FE1CB','#5DCAA5','#1D9E75','#0F6E56','#534AB7','#7F77DD','#D4537E','#993556','#639922','#3B6D11','#888780','#444441'];
-  const conColors = ['#D85A30','#993556','#534AB7','#0F6E56'];
-  const datasets = [];
+  return null;
+}
 
-  levels.forEach((lv, li) => {
-    const pts = getContourPts(xs, ys, N, lv, objFn);
-    datasets.push({ label: `f=${lv.toFixed(1)}`, data: pts, borderColor: palette[li % palette.length], backgroundColor: 'transparent', pointRadius: 0, borderWidth: 1.5, spanGaps: false, showLine: true });
-  });
+// ── Game lifecycle ───────────────────────────────────────────────────────────
+function startGame() {
+  document.getElementById('overlay').style.display = 'none';
+  level = 0; kills = 0;
+  loadLevel(0, true, 'pistol');
+  state = 'playing';
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
 
-  customLevels.forEach(lv => {
-    const pts = getContourPts(xs, ys, N, lv, objFn);
-    datasets.push({ label: `custom f=${lv}`, data: pts, borderColor: '#EF9F27', backgroundColor: 'transparent', pointRadius: 0, borderWidth: 2.5, spanGaps: false, showLine: true, borderDash: [6,3] });
-  });
+function loadLevel(idx, resetHp, carryGun) {
+  const mapRows = generateLevel(idx);
+  const parsed = parseMap(mapRows);
+  const playerStart = { x: 60, y: 60 };
+  const hp = (resetHp || !player) ? MAX_HP : player.hp;
 
-  constraints.forEach((con, ci) => {
-    const linePts = [];
-    if (Math.abs(con.b) > 1e-9) {
-      linePts.push({ x: p.xmin, y: (con.c - con.a * p.xmin) / con.b });
-      linePts.push({ x: p.xmax, y: (con.c - con.a * p.xmax) / con.b });
-    } else if (Math.abs(con.a) > 1e-9) {
-      const cx = con.c / con.a;
-      linePts.push({ x: cx, y: p.ymin });
-      linePts.push({ x: cx, y: p.ymax });
-    }
-    datasets.push({ label: `${con.a}x+${con.b}y${con.op}${con.c}`, data: linePts, borderColor: conColors[ci % 4], backgroundColor: 'transparent', borderWidth: 2, borderDash: [5,3], pointRadius: 0, showLine: true });
-  });
+  // Gun: default pistol, upgrade to machine at lvl 5, power at lvl 15
+  const gunType = carryGun || (player ? player.gunType : 'pistol');
+  const gun = GUNS[gunType];
 
-  if (onBoundary) {
-    datasets.push({ label: 'Optimal', data: [{ x: optX, y: optY }], borderColor: '#D85A30', backgroundColor: 'transparent', pointRadius: 10, pointStyle: 'circle', borderWidth: 2.5, showLine: false });
-    datasets.push({ label: 'OptimalDot', data: [{ x: optX, y: optY }], borderColor: '#D85A30', backgroundColor: '#D85A30', pointRadius: 3, pointStyle: 'circle', showLine: false });
-  } else {
-    datasets.push({ label: 'Optimal', data: [{ x: optX, y: optY }], borderColor: '#D85A30', backgroundColor: '#D85A30', pointRadius: 8, pointStyle: 'circle', showLine: false });
-  }
+  player = {
+    x: playerStart.x, y: playerStart.y,
+    angle: 0, speed: 2.5, r: 12,
+    hp, maxHp: MAX_HP,
+    invTimer: 0,
+    shootCooldown: 0,
+    gunType,
+    ammo: gun.ammo,
+    maxAmmo: gun.ammo,
+    reloading: false,
+    reloadTimer: 0
+  };
 
-  if (p.ymin <= 0 && p.ymax >= 0) {
-    datasets.push({ data: [{ x: p.xmin, y: 0 }, { x: p.xmax, y: 0 }], borderColor: '#333', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, showLine: true, spanGaps: true });
-  }
-  if (p.xmin <= 0 && p.xmax >= 0) {
-    datasets.push({ data: [{ x: 0, y: p.ymin }, { x: 0, y: p.ymax }], borderColor: '#333', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, showLine: true, spanGaps: true });
-  }
+  // Hearts: level 5+
+  hearts = idx >= 4 ? spawnHearts(parsed.walls, playerStart, parsed.exit) : [];
+  // Powerup: level 15+ (index 14), only if player doesn't already have power gun
+  powerup = (idx >= 14 && gunType !== 'power') ? spawnPowerup(parsed.walls, playerStart, parsed.exit) : null;
 
-  if (chartInst) chartInst.destroy();
-  const ctx = document.getElementById('qpChart').getContext('2d');
-  chartInst = new Chart(ctx, {
-    type: 'scatter',
-    data: { datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `(${c.parsed.x?.toFixed(2)}, ${c.parsed.y?.toFixed(2)})` } } },
-      scales: {
-        x: { min: p.xmin, max: p.xmax, grid: { color: 'rgba(128,128,128,0.12)' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v.toFixed(1) }, border: { color: '#555', width: 2 } },
-        y: { min: p.ymin, max: p.ymax, grid: { color: 'rgba(128,128,128,0.12)' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v.toFixed(1) }, border: { color: '#555', width: 2 } }
-      }
-    }
-  });
+  zombies = spawnZombies(idx, parsed.walls, playerStart, parsed.exit, hearts);
+  bullets = [];
+  currentWalls = parsed.walls;
+  currentExit = parsed.exit;
+  gameOver = false;
+  won = false;
+  updateCamera();
+}
 
-  document.getElementById('legend').innerHTML = `
-    <span><span style="width:16px;height:3px;background:linear-gradient(90deg,#185FA5,#0F6E56);display:inline-block;border-radius:2px;"></span> Auto contours</span>
-    ${customLevels.map(v => `<span><span style="width:16px;height:3px;background:#EF9F27;display:inline-block;border-radius:2px;"></span> f = ${v}</span>`).join('')}
-    ${constraints.map((c,i) => `<span><span style="width:16px;height:3px;background:${conColors[i%4]};display:inline-block;border-radius:2px;"></span> ${c.a}x+${c.b}y${c.op}${c.c}</span>`).join('')}
-    <span><span style="width:10px;height:10px;background:${onBoundary ? 'transparent' : '#D85A30'};border:${onBoundary ? '2.5px solid #D85A30' : 'none'};border-radius:50%;display:inline-block;"></span> Optimal (${onBoundary ? 'boundary' : 'interior'})</span>
+function restartGame() {
+  document.getElementById('overlay').style.display = 'none';
+  level = 0; kills = 0;
+  loadLevel(0, true, 'pistol');
+  gameOver = false;
+  won = false;
+}
+
+function showOverlay(title, sub, btn) {
+  const o = document.getElementById('overlay');
+  o.style.display = 'flex';
+  o.innerHTML = `
+    <h1>${title}</h1>
+    <p>${sub}</p>
+    <button class="start-btn" onclick="restartGame()">${btn}</button>
   `;
 }
 
-addConstraint(1, 1, '<=', 4);
-addConstraint(1, 0, '>=', -3);
-renderConstraints();
-boxesChanged();
-solve();
+// ── Camera ───────────────────────────────────────────────────────────────────
+function updateCamera() {
+  cam.x = Math.max(0, Math.min(player.x - W / 2, worldW - W));
+  cam.y = Math.max(0, Math.min(player.y - H / 2, worldH - H));
+}
+
+// ── HUD ──────────────────────────────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('lvl').textContent = level + 1;
+  document.getElementById('hp').textContent = '❤'.repeat(Math.max(0, player.hp)) || '☠';
+  document.getElementById('kills').textContent = kills;
+  document.getElementById('gun').textContent = GUNS[player.gunType].name;
+  if (player.reloading) {
+    const pct = Math.floor((1 - player.reloadTimer / GUNS[player.gunType].reload) * 100);
+    document.getElementById('ammo').textContent = `RELOAD ${pct}%`;
+  } else {
+    document.getElementById('ammo').textContent = `${player.ammo}/${player.maxAmmo}`;
+  }
+}
+
+// ── Main loop ────────────────────────────────────────────────────────────────
+let lastTime = 0;
+function loop(ts = 0) {
+  lastTime = ts;
+  if (state === 'playing') {
+    update();
+    draw();
+    updateHUD();
+    requestAnimationFrame(loop);
+  }
+}
+
+// ── Update ───────────────────────────────────────────────────────────────────
+function update() {
+  if (gameOver || won) return;
+
+  const gun = GUNS[player.gunType];
+
+  // Player rotation
+  if (keys['ArrowLeft'])  player.angle -= 0.05;
+  if (keys['ArrowRight']) player.angle += 0.05;
+
+  // Movement
+  let dx = 0, dy = 0;
+  if (keys['ArrowUp'])   { dx = Math.cos(player.angle) * player.speed;       dy = Math.sin(player.angle) * player.speed; }
+  if (keys['ArrowDown']) { dx = -Math.cos(player.angle) * player.speed * 0.6; dy = -Math.sin(player.angle) * player.speed * 0.6; }
+  const nx = player.x + dx, ny = player.y + dy;
+  if (!collidesWalls({ x: nx, y: player.y, r: player.r }, currentWalls)) player.x = nx;
+  if (!collidesWalls({ x: player.x, y: ny, r: player.r }, currentWalls)) player.y = ny;
+  player.x = Math.max(player.r, Math.min(worldW - player.r, player.x));
+  player.y = Math.max(player.r, Math.min(worldH - player.r, player.y));
+
+  // Reload tick
+  if (player.reloading) {
+    player.reloadTimer--;
+    if (player.reloadTimer <= 0) { player.ammo = player.maxAmmo; player.reloading = false; }
+  }
+
+  // Shoot (machine gun & power gun are auto-fire; pistol also holds)
+  if (keys[' '] && player.shootCooldown <= 0 && !player.reloading && player.ammo > 0) {
+    bullets.push({
+      x: player.x + Math.cos(player.angle) * 20,
+      y: player.y + Math.sin(player.angle) * 20,
+      vx: Math.cos(player.angle) * gun.bulletSpeed,
+      vy: Math.sin(player.angle) * gun.bulletSpeed,
+      life: 90,
+      damage: gun.damage
+    });
+    player.ammo--;
+    player.shootCooldown = gun.cooldown;
+    if (player.ammo === 0) { player.reloading = true; player.reloadTimer = gun.reload; }
+  }
+  if (player.shootCooldown > 0) player.shootCooldown--;
+  if (player.invTimer > 0) player.invTimer--;
+
+  // Bullets
+  for (const b of bullets) {
+    b.x += b.vx; b.y += b.vy; b.life--;
+    if (collidesWalls({ x: b.x, y: b.y, r: 3 }, currentWalls)) { b.life = 0; continue; }
+    for (const z of zombies) {
+      if (z.dead) continue;
+      if (Math.hypot(b.x - z.x, b.y - z.y) < z.size + 2) {
+        // Armored: shield absorbs first 2 hits
+        if (z.type === 'armored' && z.shield > 0) {
+          z.shield--;
+          z.flashTimer = 8;
+          b.life = 0;
+        } else {
+          z.hp -= b.damage;
+          z.flashTimer = 8;
+          b.life = 0;
+          if (z.hp <= 0) { z.dead = true; kills++; }
+        }
+        break;
+      }
+    }
+  }
+  bullets = bullets.filter(b => b.life > 0);
+
+  // Zombie AI
+  for (const z of zombies) {
+    if (z.dead) continue;
+    if (z.flashTimer > 0) z.flashTimer--;
+
+    const dist = Math.hypot(player.x - z.x, player.y - z.y);
+
+    // Enrage on vicinity (no FOV/visibility requirement)
+    if (dist < ENRAGE_RADIUS) z.enraged = true;
+    // Stay enraged once triggered (persistent aggression)
+
+    if (z.enraged) {
+      // Chase
+      const ang = Math.atan2(player.y - z.y, player.x - z.x);
+      z.angle = ang;
+      const chaseSpeed = z.speed * 1.8;
+      const zx = z.x + Math.cos(ang) * chaseSpeed;
+      const zy = z.y + Math.sin(ang) * chaseSpeed;
+      if (!collidesWalls({ x: zx, y: z.y, r: z.size }, currentWalls)) z.x = zx;
+      if (!collidesWalls({ x: z.x, y: zy, r: z.size }, currentWalls)) z.y = zy;
+    } else {
+      // Idle wander
+      z.wanderTimer--;
+      if (z.wanderTimer <= 0) {
+        z.wanderAngle = Math.random() * Math.PI * 2;
+        z.wanderTimer = 60 + Math.floor(Math.random() * 120);
+      }
+      let diff = z.wanderAngle - z.angle;
+      while (diff >  Math.PI) diff -= 2 * Math.PI;
+      while (diff < -Math.PI) diff += 2 * Math.PI;
+      z.angle += diff * 0.025;
+
+      const wx = z.x + Math.cos(z.angle) * 0.4;
+      const wy = z.y + Math.sin(z.angle) * 0.4;
+      if (!collidesWalls({ x: wx, y: z.y, r: z.size }, currentWalls)) z.x = wx;
+      else z.wanderAngle = Math.random() * Math.PI * 2;
+      if (!collidesWalls({ x: z.x, y: wy, r: z.size }, currentWalls)) z.y = wy;
+    }
+
+    // Damage player
+    if (z.enraged && dist < z.size + 6 && player.invTimer <= 0) {
+      player.hp -= z.damage;
+      player.invTimer = 60;
+      if (player.hp <= 0) {
+        gameOver = true;
+        showOverlay('GAME OVER', 'You got eaten.', 'RETRY');
+      }
+    }
+  }
+
+  // Heart pickup
+  for (const h of hearts) {
+    if (h.collected) continue;
+    if (Math.hypot(player.x - h.x, player.y - h.y) < 22) {
+      if (player.hp < player.maxHp) {
+        player.hp++;
+        h.collected = true;
+      }
+    }
+  }
+
+  // Powerup pickup
+  if (powerup && !powerup.collected) {
+    if (Math.hypot(player.x - powerup.x, player.y - powerup.y) < 24) {
+      powerup.collected = true;
+      player.gunType = 'power';
+      const newGun = GUNS.power;
+      player.ammo = newGun.ammo;
+      player.maxAmmo = newGun.ammo;
+      player.reloading = false;
+    }
+  }
+
+  updateCamera();
+
+  // Exit check (against bigger exit zone)
+  const ex = currentExit;
+  if (player.x > ex.x - 8 && player.x < ex.x + ex.w + 8 &&
+      player.y > ex.y - 8 && player.y < ex.y + ex.h + 8) {
+    if (level < 19) {
+      level++;
+      // Upgrade to machine at level 5 (index 4 → 5, so when advancing TO level 5+)
+      let carry = player.gunType;
+      if (level >= 4 && carry === 'pistol') carry = 'machine';
+      loadLevel(level, false, carry);
+    } else {
+      won = true;
+      showOverlay('YOU SURVIVED', `All 20 zones cleared. Total kills: ${kills}`, 'PLAY AGAIN');
+    }
+  }
+}
+
+// ── Draw ─────────────────────────────────────────────────────────────────────
+function draw() {
+  // Lighter background (was #111)
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(0, 0, W, H);
+
+  const ox = -cam.x, oy = -cam.y;
+
+  // Checkerboard floor — lighter tones
+  const c0 = Math.floor(cam.x / TILE), c1 = Math.ceil((cam.x + W) / TILE);
+  const r0 = Math.floor(cam.y / TILE), r1 = Math.ceil((cam.y + H) / TILE);
+  ctx.fillStyle = '#333';
+  for (let r = r0; r <= r1; r++)
+    for (let c = c0; c <= c1; c++)
+      if ((r + c) % 2 === 0) ctx.fillRect(c * TILE + ox, r * TILE + oy, TILE, TILE);
+
+  // Walls
+  for (const w of currentWalls) {
+    const wx = w.x + ox, wy = w.y + oy;
+    ctx.fillStyle = '#555';
+    ctx.fillRect(wx, wy, w.w, w.h);
+    ctx.fillStyle = '#666';
+    ctx.fillRect(wx + 2, wy + 2, w.w - 4, 4);
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(wx + 2, wy + w.h - 6, w.w - 4, 4);
+  }
+
+  // Exit (bigger, pulsing)
+  const ex = currentExit;
+  const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 300);
+  ctx.fillStyle = `rgba(0,255,100,${pulse * 0.4})`;
+  ctx.fillRect(ex.x + ox, ex.y + oy, ex.w, ex.h);
+  ctx.strokeStyle = `rgba(0,255,100,${pulse})`;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(ex.x + ox + 2, ex.y + oy + 2, ex.w - 4, ex.h - 4);
+  ctx.fillStyle = `rgba(0,255,100,${pulse})`;
+  ctx.font = 'bold 16px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('EXIT', ex.x + ox + ex.w / 2, ex.y + oy + ex.h / 2 + 6);
+
+  // Hearts
+  for (const h of hearts) {
+    if (h.collected) continue;
+    const hx = h.x + ox, hy = h.y + oy;
+    const p = 0.7 + 0.3 * Math.sin(Date.now() / 250);
+    ctx.fillStyle = `rgba(255,60,100,${p * 0.4})`;
+    ctx.beginPath();
+    ctx.arc(hx, hy, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff3355';
+    ctx.font = 'bold 22px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('❤', hx, hy + 8);
+  }
+
+  // Powerup
+  if (powerup && !powerup.collected) {
+    const px = powerup.x + ox, py = powerup.y + oy;
+    const p = 0.6 + 0.4 * Math.sin(Date.now() / 150);
+    ctx.fillStyle = `rgba(255,220,0,${p * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(px, py, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,220,0,${p})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, py, 16, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#ffdd00';
+    ctx.font = 'bold 14px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('★', px, py + 5);
+  }
+
+  // Bullets
+  for (const b of bullets) {
+    const bcol = player.gunType === 'power' ? '#ffdd00' : '#ffee44';
+    ctx.fillStyle = bcol;
+    ctx.beginPath(); ctx.arc(b.x + ox, b.y + oy, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,220,50,0.3)';
+    ctx.beginPath(); ctx.arc(b.x + ox, b.y + oy, 6, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Zombies
+  for (const z of zombies) {
+    if (z.dead) continue;
+    const zsx = z.x + ox, zsy = z.y + oy;
+
+    ctx.save();
+    ctx.translate(zsx, zsy);
+    ctx.rotate(z.angle + Math.PI / 2);
+
+    let bodyCol, headCol;
+    if (z.type === 'big') {
+      bodyCol = z.enraged ? '#880000' : '#553322';
+      headCol = z.enraged ? '#660000' : '#442211';
+    } else if (z.type === 'armored') {
+      bodyCol = z.enraged ? '#cc2200' : '#aa5500';
+      headCol = z.enraged ? '#aa1800' : '#884400';
+    } else {
+      bodyCol = z.enraged ? '#cc2200' : '#aa6600';
+      headCol = z.enraged ? '#aa1800' : '#884400';
+    }
+    if (z.flashTimer > 0) { bodyCol = '#ffffff'; headCol = '#ffaaaa'; }
+
+    const s = z.size / 12; // scale factor
+
+    // Body
+    ctx.fillStyle = bodyCol;
+    ctx.fillRect(-8 * s, -10 * s, 16 * s, 20 * s);
+
+    // Head
+    ctx.fillStyle = headCol;
+    ctx.fillRect(-6 * s, -14 * s, 12 * s, 10 * s);
+
+    // Eyes
+    ctx.fillStyle = z.enraged ? '#ff0000' : '#ffcc00';
+    ctx.fillRect(-4 * s, -12 * s, 3 * s, 3 * s);
+    ctx.fillRect( 2 * s, -12 * s, 3 * s, 3 * s);
+
+    // Arms
+    ctx.fillStyle = bodyCol;
+    ctx.fillRect(-12 * s, -6 * s, 4 * s, 10 * s);
+    ctx.fillRect(  8 * s, -6 * s, 4 * s, 10 * s);
+
+    // Shield for armored
+    if (z.type === 'armored' && z.shield > 0) {
+      ctx.strokeStyle = '#88ccff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(100,180,255,0.2)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    // HP bar above head — always visible
+    const barW = z.size * 1.8;
+    const barH = 4;
+    const barY = zsy - z.size - 10;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(zsx - barW/2 - 1, barY - 1, barW + 2, barH + 2);
+    ctx.fillStyle = '#ff3333';
+    ctx.fillRect(zsx - barW/2, barY, barW, barH);
+    ctx.fillStyle = '#33ff33';
+    ctx.fillRect(zsx - barW/2, barY, barW * (z.hp / z.maxHp), barH);
+
+    // Enraged indicator
+    if (z.enraged && z.flashTimer === 0) {
+      ctx.fillStyle = '#ff3333';
+      ctx.font = 'bold 14px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('!', zsx, barY - 4);
+    }
+  }
+
+  // Player
+  ctx.save();
+  ctx.translate(player.x + ox, player.y + oy);
+  ctx.rotate(player.angle + Math.PI / 2);
+  const flash = player.invTimer > 0 && Math.floor(player.invTimer / 5) % 2 === 0;
+  if (!flash) {
+    ctx.fillStyle = '#4488ff'; ctx.fillRect(-8, -10, 16, 20);
+    ctx.fillStyle = '#336acc'; ctx.fillRect(-6, -14, 12, 10);
+
+    // Draw different gun based on type
+    const gunCol = GUNS[player.gunType].color;
+    if (player.gunType === 'pistol') {
+      ctx.fillStyle = gunCol;
+      ctx.fillRect(-2, -22, 4, 14);
+    } else if (player.gunType === 'machine') {
+      // Longer, chunkier
+      ctx.fillStyle = gunCol;
+      ctx.fillRect(-3, -26, 6, 18);
+      ctx.fillStyle = '#666';
+      ctx.fillRect(-4, -16, 8, 4); // magazine
+    } else if (player.gunType === 'power') {
+      // Glowing futuristic
+      ctx.fillStyle = gunCol;
+      ctx.fillRect(-3, -28, 6, 20);
+      ctx.fillStyle = '#ff6600';
+      ctx.fillRect(-2, -30, 4, 4); // barrel tip
+      ctx.fillStyle = '#ffff00';
+      ctx.fillRect(-5, -18, 10, 3); // energy band
+    }
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(-4, -12, 3, 3);
+    ctx.fillRect( 2, -12, 3, 3);
+  }
+  ctx.restore();
+
+  // Muzzle flash
+  if (player.shootCooldown > GUNS[player.gunType].cooldown - 3) {
+    ctx.fillStyle = 'rgba(255,220,50,0.85)';
+    ctx.beginPath();
+    ctx.arc(
+      player.x + Math.cos(player.angle) * 26 + ox,
+      player.y + Math.sin(player.angle) * 26 + oy,
+      player.gunType === 'power' ? 8 : 6, 0, Math.PI * 2
+    );
+    ctx.fill();
+  }
+
+  // Reload bar
+  if (player.reloading) {
+    const barW = 140, barH = 6;
+    const bx = W / 2 - barW / 2, by = H - 22;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
+    const pct = 1 - player.reloadTimer / GUNS[player.gunType].reload;
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillRect(bx, by, barW * pct, barH);
+    ctx.fillStyle = '#ffaa00';
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('RELOADING', W / 2, by - 5);
+  }
+
+  if (gameOver || won) {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// ── Input ────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
 </script>
 </body>
 </html>
